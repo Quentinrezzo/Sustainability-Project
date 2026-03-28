@@ -17,7 +17,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # --- Step 1: Estimate parameters (mu, sigma) for each year Y ---
 print("--- Step 1: Estimate parameters (mu, sigma) ---")
 
-for Y in range(2013, 2025):
+for Y in range(2013, 2026):
     # Load investment set for year Y
     inv = pd.read_csv(INV_SET_DIR / f"investment_set_{Y}.csv")
 

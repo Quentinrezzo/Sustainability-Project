@@ -37,7 +37,7 @@ print("\n--- Step 2: Exclude firms with < 48 months of returns ---")
 return_date_cols = [c for c in returns.columns if c not in ["NAME", "ISIN"]]
 return_dates = pd.to_datetime(return_date_cols)
 
-for Y in range(2013, 2025):
+for Y in range(2013, 2026):
     # 10-year window: Y-9 to Y (e.g. 2004-2013)
     start_year = Y - 9
     window_cols = [c for c, d in zip(return_date_cols, return_dates) if d.year >= start_year and d.year <= Y]
@@ -58,7 +58,7 @@ ri_date_cols = [c for c in ri_m.columns if c not in ["NAME", "ISIN"]]
 ri_dates = pd.to_datetime(ri_date_cols)
 ri_prices = ri_m[ri_date_cols].apply(pd.to_numeric, errors="coerce")
 
-for Y in range(2013, 2025):
+for Y in range(2013, 2026):
     # Find the last month of year Y (December)
     dec_cols = [c for c, d in zip(ri_date_cols, ri_dates) if d.year == Y and d.month == 12]
     if not dec_cols:
@@ -74,7 +74,7 @@ for Y in range(2013, 2025):
 # --- Step 4: Exclude stale firms (> 50% zero returns over 10-year window) ---
 print("\n--- Step 4: Exclude stale firms (> 50% zero returns) ---")
 
-for Y in range(2013, 2025):
+for Y in range(2013, 2026):
     start_year = Y - 9
     window_cols = [c for c, d in zip(return_date_cols, return_dates) if d.year >= start_year and d.year <= Y]
 
@@ -99,7 +99,7 @@ co2_s1_cols = [c for c in co2_s1.columns if c not in ["NAME", "ISIN"]]
 co2_s2_cols = [c for c in co2_s2.columns if c not in ["NAME", "ISIN"]]
 rev_cols = [c for c in rev.columns if c not in ["NAME", "ISIN"]]
 
-for Y in range(2013, 2025):
+for Y in range(2013, 2026):
     y_str = str(Y)
 
     # Check CO2 Scope 1
@@ -117,7 +117,7 @@ for Y in range(2013, 2025):
 # --- Final: Combine all filters and save investment set per year Y ---
 print("\n--- Final: Combine all filters and save investment set ---")
 
-for Y in range(2013, 2025):
+for Y in range(2013, 2026):
     start_year = Y - 9
     y_str = str(Y)
 
