@@ -157,7 +157,7 @@ for Y in range(2013, 2026):
     inv_set = inv_set.merge(rev[["ISIN", y_str]].rename(columns={y_str: "REV"}), on="ISIN", how="left")
 
     # Add carbon intensity
-    inv_set["Carbon_Intensity"] = (inv_set["CO2_S1"] + inv_set["CO2_S2"]) / inv_set["REV"]
+    inv_set["CI"] = (inv_set["CO2_S1"] + inv_set["CO2_S2"]) / (inv_set["REV"] / 1000)
 
     # Add monthly returns (at the end)
     firm_returns = returns.loc[eligible, ["ISIN"] + window_cols]
