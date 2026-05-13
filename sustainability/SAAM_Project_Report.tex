@@ -1,0 +1,668 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames*,x11names*}{xcolor}
+%
+\documentclass[
+  11pt,
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  filecolor=Maroon,
+  citecolor=Blue,
+  urlcolor=Blue,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable,booktabs}
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\author{Group AN — North America + Europe}
+\date{May 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+
+
+
+\hypertarget{data-loading-and-investment-sets}{%
+\section{1. Data Loading and Investment
+Sets}\label{data-loading-and-investment-sets}}
+
+\hypertarget{data-sources}{%
+\subsection{1.1 Data Sources}\label{data-sources}}
+
+The project uses processed investment set files (CSV format) for each
+year from 2013 to 2025. Each file, named investment\_set\_\{year\}.csv,
+contains one row per firm and the following key variables:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+\textbf{Variable} & \textbf{Description}\tabularnewline
+\midrule
+\endhead
+ISIN & Firm identifier\tabularnewline
+NAME, Country, Region & Firm identifiers and geographic
+classification\tabularnewline
+MV\_Y & End-of-year market capitalisation (million USD)\tabularnewline
+CO2\_S1, CO2\_S2 & Scope 1 and Scope 2 CO₂ emissions
+(tonnes)\tabularnewline
+REV & Annual revenues (thousands USD)\tabularnewline
+CI & Carbon intensity = (CO2\_S1+CO2\_S2)/(REV/1000) (tCO₂e per million
+USD revenue)\tabularnewline
+Monthly return columns & 120 monthly total returns (10-year estimation
+window ending in year Y)\tabularnewline
+\bottomrule
+\end{longtable}
+
+Carbon data covers 2002--2024. Due to limited coverage before 2010, the
+allocation exercise begins at end of 2013 (portfolio first invested in
+2014).
+
+\hypertarget{investment-set-construction}{%
+\subsection{1.2 Investment Set
+Construction}\label{investment-set-construction}}
+
+For each year Y = 2013, \ldots, 2024, the investment set is defined as
+firms satisfying all of the following criteria:
+
+\begin{itemize}
+\item
+  Belong to the assigned region.
+\item
+  Have sufficient return history: at least 3 years (36 months) of
+  non-missing monthly returns over the 10-year window ending at end of
+  year Y.
+\item
+  Have carbon data (CO₂ and revenues) available at end of year Y.
+\item
+  Do not have stale prices: firms whose monthly returns are zero for
+  more than 50\% of the estimation window are excluded.
+\end{itemize}
+
+The investment decision is made at end of year Y for portfolio
+implementation over year Y+1. The covariance matrix and expected returns
+are estimated from the 10-year window of monthly returns available at
+end of Y.
+
+\hypertarget{full-available-data-variant}{%
+\subsection{1.3 Full-Available-Data
+Variant}\label{full-available-data-variant}}
+
+A second version of each investment set, labelled is\_\{year\}\_fa, is
+constructed by dropping any firms with at least one missing monthly
+return over the 10-year window. This stricter filter is used for the
+full-available-data value-weighted portfolio and as the benchmark in the
+Ledoit-Wolf tracking-error and net-zero optimizations.
+
+\hypertarget{value-weighted-portfolios}{%
+\section{2. Value-Weighted Portfolios}\label{value-weighted-portfolios}}
+
+\hypertarget{standard-value-weighted-portfolio}{%
+\subsection{2.1 Standard Value-Weighted
+Portfolio}\label{standard-value-weighted-portfolio}}
+
+At the end of each year Y, portfolio weights are set proportional to
+each firm's market capitalisation within the investment set:
+
+\emph{w\_\{i,Y\} = MV\_\{i,Y\} / Σ\_j MV\_\{j,Y\}}
+
+These end-of-year weights are stored in the column MV\_Y\_weight and
+serve as the January weight for year Y+1. However, rather than holding
+these weights fixed throughout the year, the portfolio is reweighted
+each month using the actual end-of-month market capitalisations from
+MV\_M\_filtered.csv. Concretely, for February through December of year
+Y+1, the weight of firm i at the start of month t is:
+
+\emph{w\_\{i,t\} = MV\_\{i,t-1\} / Σ\_j MV\_\{j,t-1\} for t = Feb(Y+1),
+\ldots, Dec(Y+1)}
+
+where MV\_\{i,t-1\} is the market capitalisation of firm i at the end of
+the preceding month, taken from MV\_M\_filtered.csv. Monthly caps are
+matched to return columns by nearest available date. If a monthly cap is
+unavailable, the end-of-year market cap (MV\_Y) from the prior
+investment set is used as a fallback. Weights are renormalized within
+the investment-set universe so they sum to 1 each month. The monthly
+portfolio return is then R\_\{p,t\} = Σ\_i w\_\{i,t\} × R\_\{i,t\},
+where missing returns are replaced by zero to avoid survivorship bias
+(firms that delist or have gaps are treated as contributing 0 return
+rather than being dropped from the denominator).
+
+\hypertarget{full-available-data-value-weighted-portfolio}{%
+\subsection{2.2 Full-Available-Data Value-Weighted
+Portfolio}\label{full-available-data-value-weighted-portfolio}}
+
+The same monthly market cap reweighting methodology is applied to the
+is\_\{year\}\_fa subset (firms with complete 10-year return histories).
+After removing firms with any NaN in their return series, the
+end-of-year MV\_Y\_weight values no longer sum to 1 over the reduced
+universe; they are therefore explicitly renormalized so that Σ\_i
+w\_\{i,Y\}\^{}\{fa\} = 1. Monthly reweighting from February onwards then
+uses the same MV\_M\_filtered.csv caps restricted to the fa universe,
+renormalized within that universe. This portfolio is stored as
+MV\_Y\_weight\_fa and serves as the benchmark for tracking-error and
+net-zero optimizations.
+
+\hypertarget{minimum-variance-portfolio-optimization}{%
+\section{3. Minimum-Variance Portfolio
+Optimization}\label{minimum-variance-portfolio-optimization}}
+
+\hypertarget{covariance-matrix-estimation}{%
+\subsection{3.1 Covariance Matrix
+Estimation}\label{covariance-matrix-estimation}}
+
+For each year Y, two covariance matrices are computed from the 10-year
+window of monthly returns:
+
+Sample Covariance (SLSQP method): The standard sample covariance matrix
+Σ\_Y = (1/τ) Σ\_\{k=0\}\^{}\{τ-1\} (R\_\{t-k\} − μ\_Y)(R\_\{t-k\} −
+μ\_Y)' where τ = 120 months. Computed using pandas .cov() on the
+transposed return matrix.
+
+Ledoit-Wolf Shrinkage (CVXPY method): Before applying Ledoit-Wolf, firms
+with any NaN in their return series are removed. The remaining returns
+are passed to scikit-learn's LedoitWolf estimator, which produces a
+positive-semidefinite covariance matrix Σ\_Y\^{}\{LW\} by optimally
+shrinking the sample covariance towards a scaled identity. The resulting
+subset of firms is stored as returns\_\{year\}\_lw.
+
+\hypertarget{slsqp-optimization-sample-covariance}{%
+\subsection{3.2 SLSQP Optimization (Sample
+Covariance)}\label{slsqp-optimization-sample-covariance}}
+
+The minimum-variance weights for year Y are obtained by solving:
+
+\emph{min\_\{α\} α' Σ\_Y α}
+
+\emph{s.t. Σ\_i α\_i = 1, α\_i ≥ 0 for all i}
+
+Solved with scipy.optimize.minimize using the SLSQP method. A numerical
+scaling factor of 10,000 is applied to Σ\_Y before optimization to
+improve convergence, and the resulting weights are verified to be
+identical to those from the unscaled problem. The initial guess is the
+equal-weight vector.
+
+\hypertarget{cvxpy-osqp-optimization-ledoit-wolf}{%
+\subsection{3.3 CVXPY / OSQP Optimization
+(Ledoit-Wolf)}\label{cvxpy-osqp-optimization-ledoit-wolf}}
+
+The same quadratic program is solved with the CVXPY library using the
+OSQP solver on the Ledoit-Wolf covariance matrix Σ\_Y\^{}\{LW\}:
+
+\emph{min\_w w' Σ\_Y\^{}\{LW\} w (CVXPY quad\_form)}
+
+\emph{s.t. Σ\_i w\_i = 1, w\_i ≥ 0}
+
+A scaling factor of 10,000 is also applied for numerical stability.
+Small negative weights produced by solver numerical noise are clipped to
+zero and weights are renormalized to sum to 1.
+
+\hypertarget{out-of-sample-returns}{%
+\subsection{3.4 Out-of-Sample Returns}\label{out-of-sample-returns}}
+
+For each year Y = 2013, \ldots, 2024, the weights α\_Y computed at end
+of Y are applied to the actual monthly returns of year Y+1. The
+portfolio is rebalanced annually; within the year, weights drift with
+prices (dynamic weight update). This procedure produces a 144-month
+out-of-sample return time series from January 2014 to December 2025.
+
+\hypertarget{carbon-metrics}{%
+\section{4. Carbon Metrics}\label{carbon-metrics}}
+
+\hypertarget{carbon-intensity-ci}{%
+\subsection{4.1 Carbon Intensity (CI)}\label{carbon-intensity-ci}}
+
+Carbon intensity measures CO₂ emissions relative to revenues. For each
+firm i in year Y:
+
+\emph{CI\_\{i,Y\} = (CO2\_S1\_\{i,Y\} + CO2\_S2\_\{i,Y\}) /
+(REV\_\{i,Y\} / 1000)}
+
+The division by 1000 converts revenues from thousands to millions of
+USD, giving CI in tonnes of CO₂ equivalent per million USD of revenue
+(tCO₂e / M\$rev).
+
+\hypertarget{weighted-average-carbon-intensity-waci}{%
+\subsection{4.2 Weighted Average Carbon Intensity
+(WACI)}\label{weighted-average-carbon-intensity-waci}}
+
+The portfolio-level WACI aggregates firm-level carbon intensity using
+portfolio weights:
+
+\emph{WACI\_Y\^{}\{(p)\} = Σ\_i α\_\{i,Y\} × CI\_\{i,Y\}}
+
+Computed annually for each portfolio using the weights determined at end
+of year Y.
+
+\hypertarget{carbon-footprint-cf}{%
+\subsection{4.3 Carbon Footprint (CF)}\label{carbon-footprint-cf}}
+
+The carbon footprint of the portfolio measures the CO₂ emissions
+attributed to the investor per million USD invested:
+
+\emph{CF\_Y\^{}\{(p)\} = Σ\_i α\_\{i,Y\} × E\_\{i,Y\} / Cap\_\{i,Y\}}
+
+where E\_\{i,Y\} = CO2\_S1\_\{i,Y\} + CO2\_S2\_\{i,Y\} (total emissions
+in tonnes), Cap\_\{i,Y\} = MV\_Y (market capitalisation in million USD),
+and α\_\{i,Y\} is the portfolio weight. The result is in tonnes of CO₂
+per million USD invested (tCO₂e / M\$inv). Portfolio wealth cancels out
+of this formula, so no wealth evolution is required.
+
+\hypertarget{cf-constrained-minimum-variance-portfolio-part-3.2}{%
+\section{5. CF-Constrained Minimum-Variance Portfolio (Part
+3.2)}\label{cf-constrained-minimum-variance-portfolio-part-3.2}}
+
+A carbon footprint constraint is added to the minimum-variance problem
+to force the portfolio CF to be no more than 50\% of the unconstrained
+minimum-variance portfolio CF in the same year:
+
+\emph{min\_\{α\} α' Σ\_Y α}
+
+\emph{s.t. CF\_Y\^{}\{(p)\} ≤ 0.5 × CF\_Y\^{}\{(mv)\}}
+
+\emph{Σ\_i α\_i = 1, α\_i ≥ 0}
+
+where CF\_Y\^{}\{(mv)\} is the carbon footprint of the unconstrained
+minimum-variance portfolio computed for year Y. The constraint is
+re-evaluated each year so that the 50\% reduction target is relative to
+the current unconstrained portfolio, not a fixed baseline.
+
+Two implementations are produced:
+
+\begin{itemize}
+\item
+  SLSQP (sample covariance): same solver as Section 3.2, warm-started
+  from equal weights.
+\item
+  CVXPY/OSQP (Ledoit-Wolf): same solver as Section 3.3, with the CF
+  constraint expressed as a linear inequality e' w ≤ target where e\_i =
+  E\_\{i,Y\}/Cap\_\{i,Y\}.
+\end{itemize}
+
+\hypertarget{tracking-error-minimization-part-3.3}{%
+\section{6. Tracking Error Minimization (Part
+3.3)}\label{tracking-error-minimization-part-3.3}}
+
+This strategy minimizes the tracking error relative to the
+value-weighted benchmark while constraining the portfolio carbon
+footprint to 50\% of the VW benchmark CF. It targets a passive investor
+seeking to reduce carbon emissions with minimal deviation from the
+market-cap portfolio.
+
+The optimization problem is:
+
+\emph{min\_\{α\} TE\_Y\^{}2 = (α\_Y − α\_Y\^{}\{vw\})' Σ\_Y (α\_Y −
+α\_Y\^{}\{vw\})}
+
+\emph{s.t. CF\_Y\^{}\{(p)\} ≤ 0.5 × CF\_Y\^{}\{(vw)\}}
+
+\emph{Σ\_i α\_i = 1, α\_i ≥ 0}
+
+Minimizing TE² is equivalent to minimizing TE since the square-root
+function is strictly increasing over non-negative values and is
+numerically preferable near zero.
+
+Two implementations:
+
+\begin{itemize}
+\item
+  SLSQP: uses the sample covariance matrix and MV\_Y\_weight as the VW
+  benchmark. Warm-started from the VW weights to ensure feasibility.
+\item
+  CVXPY/OSQP with Ledoit-Wolf: uses Σ\_Y\^{}\{LW\} and MV\_Y\_weight\_fa
+  (the full-available-data VW benchmark). The VW\_fa weights are
+  reindexed to the LW subset of firms and renormalized to sum to 1
+  before use in the objective. The CF reference is computed over the
+  full investment set using MV\_Y\_weight\_fa.
+\end{itemize}
+
+\hypertarget{net-zero-portfolio-part-4.1}{%
+\section{7. Net Zero Portfolio (Part
+4.1)}\label{net-zero-portfolio-part-4.1}}
+
+The net zero strategy adopts the same tracking-error minimization
+framework as Section 6, but replaces the static 50\% CF reduction
+constraint with a time-varying constraint that enforces a compounding
+10\% annual reduction in the portfolio carbon footprint from a fixed
+2013 baseline:
+
+\emph{CF\_Y\^{}\{(p)\} ≤ (1 − θ)\^{}\{Y−Y\_0+1\} ×
+CF\_\{Y\_0\}\^{}\{(vw)\}}
+
+where θ = 0.10, Y\_0 = 2013, and CF\_\{2013\}\^{}\{(vw)\} is the carbon
+footprint of the value-weighted portfolio in 2013 (computed once as a
+fixed reference). This gives the following annual carbon budgets:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+\textbf{Year Y} & \textbf{CF budget as \% of 2013 VW CF}\tabularnewline
+\midrule
+\endhead
+2013 (Y−Y₀+1 = 1) & 90.0\% (0.9¹)\tabularnewline
+2014 (exponent = 2) & 81.0\% (0.9²)\tabularnewline
+2016 (exponent = 4) & 65.6\% (0.9⁴)\tabularnewline
+2019 (exponent = 7) & 47.8\% (0.9⁷)\tabularnewline
+2022 (exponent = 10) & 34.9\% (0.9¹⁰)\tabularnewline
+2024 (exponent = 12) & 28.2\% (0.9¹²)\tabularnewline
+\bottomrule
+\end{longtable}
+
+The net-zero strategy is implemented using the CVXPY/Ledoit-Wolf solver
+only. The SLSQP implementation was removed as the LW formulation
+provides a more robust and numerically stable solution for this
+constrained problem.
+
+\begin{itemize}
+\item
+  CVXPY/LW: CF reference = 2013 VW\_fa CF using MV\_Y\_weight\_fa
+  weights computed over the fa universe. CVXPY weights are stored with
+  .flatten() to ensure a 1-D array regardless of solver output shape.
+\item
+  The nz\_weight\_slsqp column is no longer populated in the investment
+  set CSVs; only nz\_weight\_lw is stored.
+\end{itemize}
+
+CVXPY weights are stored with .flatten() to ensure a 1-D array
+regardless of solver output shape, avoiding downstream dtype errors.
+
+\hypertarget{portfolio-weight-storage-and-csv-management}{%
+\section{8. Portfolio Weight Storage and CSV
+Management}\label{portfolio-weight-storage-and-csv-management}}
+
+All portfolio weights are collected into a unified per-year investment
+set DataFrame (inv\_set\_\{year\}) and persisted to CSV to allow
+inter-cell continuity without re-running the full optimization pipeline.
+The final column structure is:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+\textbf{Column Index} & \textbf{Contents}\tabularnewline
+\midrule
+\endhead
+0--4 & ISIN, NAME, Country, Region, MV\_Y\tabularnewline
+5 & MV\_Y\_weight (value-weighted)\tabularnewline
+6 & MV\_Y\_weight\_fa (full-available-data VW)\tabularnewline
+7 & min\_var\_weight\_slsqp (unconstrained MV, SLSQP)\tabularnewline
+8 & min\_var\_weight\_lw (unconstrained MV, LW)\tabularnewline
+9 & min\_var\_weight\_cf\_slsqp (CF-constrained MV,
+SLSQP)\tabularnewline
+10 & min\_var\_weight\_cf\_lw (CF-constrained MV, LW)\tabularnewline
+11 & te\_weight\_slsqp (tracking error, SLSQP)\tabularnewline
+12 & te\_weight\_lw (tracking error, LW)\tabularnewline
+13 & nz\_weight\_slsqp (net zero, SLSQP --- removed, column not
+populated)\tabularnewline
+14 & nz\_weight\_lw (net zero, LW)\tabularnewline
+15+ & CO2\_S1, CO2\_S2, REV, CI, and monthly return
+columns\tabularnewline
+\bottomrule
+\end{longtable}
+
+When adding LW-specific weights (which are only defined for the NaN-free
+LW subset), a left-merge on ISIN is performed so that firms outside the
+LW universe receive a weight of 0. Stale columns from previous runs are
+dropped before merging to avoid pandas 2.0+ MergeError on duplicate
+column names.
+
+\hypertarget{out-of-sample-return-computation}{%
+\section{9. Out-of-Sample Return
+Computation}\label{out-of-sample-return-computation}}
+
+\hypertarget{return-dataframe-format}{%
+\subsection{9.1 Return Dataframe Format}\label{return-dataframe-format}}
+
+Returns are stored in a wide format using the create\_returns\_dataframe
+helper: a DataFrame with years (2014--2025) as the row index and months
+(Jan--Dec) as the twelve columns. A monthly time series is obtained by
+calling .stack() on this DataFrame, producing a Series indexed by (year,
+month) tuples.
+
+\hypertarget{value-weighted-portfolio-returns}{%
+\subsection{9.2 Value-Weighted Portfolio
+Returns}\label{value-weighted-portfolio-returns}}
+
+For the value-weighted portfolios (both full investment set and fa
+subset), the return for each month of year Y+1 is computed using the
+appropriate monthly weight column. Return columns and weight columns are
+paired by sorting both independently by date, guaranteeing correct
+alignment regardless of column order in the DataFrame. The steps are:
+
+\begin{itemize}
+\item
+  Build a per-year DataFrame containing MV\_Y\_weight (January weight)
+  and MV\_M\_weight\_\{date\} columns (February through November
+  weights) from actual monthly market caps, plus the 12 monthly return
+  columns from is\_\{year\}.
+\item
+  For each month t, multiply the corresponding weight column by the
+  return column (with missing returns filled as zero) and sum across all
+  firms to obtain R\_\{p,t\}.
+\item
+  December uses the November end-of-month cap weights (the 11th MV\_M
+  column), which together with MV\_Y\_weight gives exactly 12
+  weight-return pairings per year.
+\end{itemize}
+
+\hypertarget{minimum-variance-cf-constrained-tracking-error-and-net-zero-portfolio-returns}{%
+\subsection{9.3 Minimum-Variance, CF-Constrained, Tracking-Error, and
+Net-Zero Portfolio
+Returns}\label{minimum-variance-cf-constrained-tracking-error-and-net-zero-portfolio-returns}}
+
+All optimized portfolios (SLSQP, LW, CF-constrained, tracking-error, and
+net-zero) use a buy-and-hold weight drift approach rather than fixed
+monthly weights. Weights are set once at end of year Y and then allowed
+to evolve naturally as asset prices move, exactly as they would for an
+investor who invests at the start of the year and does not rebalance
+intra-year. The update rule for each month t within year Y+1 is:
+
+\begin{itemize}
+\item
+  w\_\{i,t\} = w\_\{i,t-1\} × (1 + R\_\{i,t-1\}) / (1 + R\_\{p,t-1\})
+\item
+  An asset whose return exceeds the portfolio return this month will
+  have a higher weight next month; an asset that underperforms will
+  shrink in share. The division by (1 + R\_\{p,t-1\}) ensures that the
+  updated weights still sum to 1 at all times. Missing returns are
+  filled as zero so that delisted or temporarily absent firms contribute
+  0 to portfolio return without distorting the weight denominator (no
+  survivorship bias).
+\item
+  This procedure is applied identically to all optimized strategies:
+  SLSQP min-variance, LW min-variance, CF-constrained (SLSQP and LW),
+  tracking-error (SLSQP and LW), and net-zero (LW only). The result is a
+  12-element monthly return series per year, stacked across years to
+  form the full 144-month out-of-sample series (January 2014 to December
+  2025).
+\end{itemize}
+
+\hypertarget{performance-statistics}{%
+\subsection{9.4 Performance Statistics}\label{performance-statistics}}
+
+For each portfolio, the following statistics are computed over the full
+144-month period (January 2014 -- December 2025):
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+\textbf{Statistic} & \textbf{Formula}\tabularnewline
+\midrule
+\endhead
+Annualized Average Return & (1 + mean(r\_monthly))\^{}12 −
+1\tabularnewline
+Annualized Volatility & std(r\_monthly) × √12\tabularnewline
+Sharpe Ratio & Annualized Return / Annualized Volatility\tabularnewline
+Annualized Cumulative Return & (1 + cum\_return)\^{}\{1/12\} −
+1\tabularnewline
+Min/Max Monthly Return & min and max of r\_monthly\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{carbon-footprint-and-waci-evolution}{%
+\section{10. Carbon Footprint and WACI
+Evolution}\label{carbon-footprint-and-waci-evolution}}
+
+For each portfolio and each year Y = 2013, \ldots, 2024, the annual CF
+and WACI are computed from the weights determined at end of Y and the
+carbon data for year Y. For LW portfolios, the weight vector is
+reindexed from the LW-subset order to the full inv\_set order using a
+ISIN-based reindex, and emission intensities are computed over the
+matching LW subset.
+
+Results are collected into cf\_waci\_*\_df DataFrames indexed by year,
+enabling line plots that show the evolution of both metrics across the
+sample period for all portfolio variants.
+
+\hypertarget{top-10-carbon-intensive-firms-analysis}{%
+\section{11. Top-10 Carbon Intensive Firms
+Analysis}\label{top-10-carbon-intensive-firms-analysis}}
+
+For each year and each portfolio, the 10 firms with the highest carbon
+intensity (CI) are identified from the investment set. Their portfolio
+weights are displayed as horizontal bar charts in a 4×3 grid (one
+subplot per year, 2013--2024). Each portfolio family uses a consistent
+colour scheme:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+\textbf{Portfolio Family} & \textbf{Bar Colour}\tabularnewline
+\midrule
+\endhead
+Unconstrained MV (SLSQP and LW) & Steelblue\tabularnewline
+CF-Constrained MV (SLSQP and LW) & Tomato\tabularnewline
+Tracking Error (SLSQP and LW) & Medium Sea Green\tabularnewline
+Net Zero (LW only) & Dark Orchid\tabularnewline
+\bottomrule
+\end{longtable}
+
+These plots allow visual inspection of how much weight each strategy
+allocates to the most carbon-intensive names, and how this evolves as
+constraints tighten.
+
+\hypertarget{decomposition-of-cf-and-waci-changes}{%
+\section{12. Decomposition of CF and WACI
+Changes}\label{decomposition-of-cf-and-waci-changes}}
+
+A counterfactual decomposition separates the observed change in CF and
+WACI from the 2013 level into two effects, following a Laspeyres-type
+framework:
+
+\hypertarget{emission-effect-frozen-weights}{%
+\subsection{12.1 Emission Effect (frozen
+weights)}\label{emission-effect-frozen-weights}}
+
+The portfolio weights are held fixed at their 2013 values while
+firm-level emissions and carbon intensity are allowed to evolve. This
+isolates the contribution of firm-level decarbonization (or
+deterioration) to the portfolio-level carbon metric, independently of
+reweighting decisions.
+
+\emph{CF\_Y\^{}\{emission\} = Σ\_i (w\_\{i,2013\} / Σ\_j w\_\{j,2013\})
+× E\_\{i,Y\} / Cap\_\{i,Y\}}
+
+\hypertarget{composition-effect-frozen-emissions}{%
+\subsection{12.2 Composition Effect (frozen
+emissions)}\label{composition-effect-frozen-emissions}}
+
+The firm-level emissions and carbon intensities are held fixed at 2013
+values while the portfolio weights are allowed to vary. This isolates
+the contribution of active portfolio reweighting (tilting towards
+lower-carbon firms) to the portfolio-level carbon metric.
+
+\emph{CF\_Y\^{}\{composition\} = Σ\_i w\_\{i,Y\} × E\_\{i,2013\} /
+Cap\_\{i,2013\}}
+
+The same framework is applied to WACI, substituting CI for E/Cap. Each
+decomposition figure contains two panels (WACI left, CF right), and is
+produced for each portfolio variant. Only firms present in both the 2013
+and year-Y investment sets (inner merge on ISIN) contribute to the
+decomposition.
+
+\hypertarget{summary-of-portfolio-families}{%
+\section{13. Summary of Portfolio
+Families}\label{summary-of-portfolio-families}}
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule
+\textbf{Portfolio} & \textbf{Description}\tabularnewline
+\midrule
+\endhead
+VW & Value-weighted, standard MV\_Y weights\tabularnewline
+VW (full available data) & Value-weighted, NaN-free firms only,
+renormalized\tabularnewline
+MV (SLSQP) & Min-variance, sample covariance, long-only\tabularnewline
+MV (LW) & Min-variance, Ledoit-Wolf shrinkage, long-only\tabularnewline
+MV CF-Constr. (SLSQP) & Min-variance + CF ≤ 50\% of MV CF (sample
+cov.)\tabularnewline
+MV CF-Constr. (LW) & Min-variance + CF ≤ 50\% of MV CF
+(LW)\tabularnewline
+TE (SLSQP) & Tracking-error min. + CF ≤ 50\% of VW CF (sample
+cov.)\tabularnewline
+TE (LW) & Tracking-error min. + CF ≤ 50\% of VW\_fa CF
+(LW)\tabularnewline
+NZ (LW only) & TE min. + CF ≤ (0.9)\^{}\{Y−2013+1\} ×
+CF\_\{2013\}\^{}\{VW\_fa\} (LW, CVXPY/OSQP)\tabularnewline
+NZ --- removed & SLSQP net-zero implementation removed; LW-only net-zero
+listed above\tabularnewline
+\bottomrule
+\end{longtable}
+
+Results
+
+\textbf{Why the drastic decrease in CF and WACI?}
+
+The issue is not a computation error but rather what the investment set
+actually contains in each year. The investment set for 2013 is
+restricted to firms that had carbon data available by end-2013 ---
+mostly large, established companies in energy, materials, and
+industrials, which are precisely the most carbon-intensive sectors. In
+subsequent years, as carbon reporting improves and more firms start
+disclosing emissions, many new companies enter the investment set. These
+are predominantly tech, healthcare, and services companies --- sectors
+with very low carbon intensity and, crucially, very high market
+capitalizations.
+
+\end{document}
