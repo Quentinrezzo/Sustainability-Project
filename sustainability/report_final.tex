@@ -1,0 +1,790 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{amsmath, amssymb, amsfonts, mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\usepackage{pdflscape}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{csquotes}
+\usepackage{amsthm}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!50!black,
+    citecolor=blue!50!black,
+    urlcolor=blue!50!black,
+    pdftitle={Sustainability Aware Asset Management},
+    pdfauthor={Dany Gonçalves Rodrigues, Frédéric Van Den Hurk, Maxime Jacques, Quentin Rezzonico}
+}
+
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\itshape}{\thesubsubsection.}{0.5em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Sustainability Aware Asset Management}
+\fancyhead[R]{\thepage}
+
+\newcommand{\placeholdertable}[1]{
+    \begin{table}[H]
+        \centering
+        \fbox{
+            \parbox{0.9\textwidth}{
+                \vspace{0.5em}
+                \centering \textit{Placeholder for Table: #1}
+                \vspace{0.5em}
+            }
+        }
+    \end{table}
+}
+
+\newcommand{\placeholderfigure}[1]{
+    \begin{figure}[H]
+        \centering
+        \fbox{
+            \parbox{0.85\textwidth}{
+                \vspace{3em}
+                \centering \textit{Placeholder for Figure: #1}
+                \vspace{3em}
+            }
+        }
+    \end{figure}
+}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    {\Large \textbf{Sustainability Aware Asset Management} \par}
+    \vspace{0.4cm}
+    {\large Portfolio Allocation with a Carbon Objective \par}
+    \vspace{1.2cm}
+
+    {\normalsize \textbf{HEC Lausanne --- Master in Finance} \par}
+    {\normalsize Spring 2026 \par}
+
+    \vspace{1cm}
+
+    {\normalsize
+    Dany Gonçalves Rodrigues \\
+    Frédéric Van Den Hurk \\
+    Maxime Jacques \\
+    Quentin Rezzonico
+    \par}
+
+    \vspace{0.8cm}
+
+    {\normalsize
+    Region: North America \& Europe \\
+    Climate strategy: Scope 1 + Scope 2
+    \par}
+
+    \vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Context and Motivation}
+
+The integration of environmental, social, and governance (ESG) considerations into portfolio management has become a central topic in modern finance. Among these dimensions, climate risk, and more specifically the carbon footprint of investment portfolios, has emerged as a key concern for institutional investors, regulators, and asset managers alike. The Paris Agreement (2015) set the objective of limiting global warming to well below 2\textdegree C above pre-industrial levels, with efforts to limit the increase to 1.5\textdegree C. This has created strong incentives for the financial industry to develop strategies that align capital allocation with decarbonization pathways.
+
+From an investor's perspective, integrating carbon constraints into portfolio construction raises a fundamental question: what is the cost, in terms of financial performance, of reducing the carbon footprint of an equity portfolio? This question is at the heart of this project. We investigate whether it is possible to achieve meaningful reductions in portfolio-level carbon emissions while maintaining acceptable levels of risk-adjusted return, using standard optimization tools from quantitative finance.
+
+\subsection{Objective and Scope}
+
+The objective of this project is to implement and evaluate several climate-aware portfolio allocation strategies over the period 2014--2025. Starting from a universe of international equities with available carbon data, we construct long-only portfolios that satisfy increasingly stringent carbon emission constraints, and we evaluate their out-of-sample financial and environmental performance.
+
+The project is structured in three parts:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Part I --- Standard Portfolio Allocation.} We construct a minimum-variance portfolio and compare its out-of-sample performance to a value-weighted (market-cap) benchmark that will be used as a baseline against the carbon-constrained portfolios.
+
+    \item \textbf{Part II --- Portfolio Allocation with Carbon Emission Reduction.} We introduce three carbon-constrained strategies. The first adds a carbon footprint ceiling, set at 50\% of the unconstrained minimum-variance portfolio's Carbon Footprint (CF), to the minimum-variance optimization. The second minimizes the tracking error relative to the value-weighted benchmark while imposing a 50\% CF reduction relative to the benchmark. The third implements a net-zero decarbonization trajectory in which the portfolio's carbon footprint must decrease by 10\% per year on a compounding basis from a fixed 2013 baseline, following a logic similar to the EU Paris-Aligned Benchmark (PAB) regulation, which requires a minimum 7\% annual decarbonization rate consistent with a 1.5\textdegree C pathway.
+\end{itemize}
+
+
+\section{Data and Methodology}
+\label{sec:data-methodology}
+
+\subsection{Data Sources}
+
+The dataset is sourced from Datastream and covers a universe of 2,545 firms for which carbon data is available. The data spans the period from end-1999 to end-2025 for price-related variables, and from 2002 to 2024 for carbon and revenue data. However, carbon data coverage is limited before 2010, which motivates the decision to start the allocation exercise at end of 2013.
+
+For each firm, we observe the following variables:
+
+\begin{table}[H]
+    \centering
+    \caption{Raw data}
+    \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.2cm} X >{\raggedright\arraybackslash}p{2.3cm}}
+        \toprule
+        \textbf{Variable} & \textbf{Description} & \textbf{Frequency} \\
+        \midrule
+        ISIN & International Securities Identification Number & Static \\
+        Name, Country, Region & Firm identifiers and geographic classification & Static \\
+        RI\_M (Total Return Index) & Price index including dividend payments (USD) & Monthly \\
+        RI\_Y (Total Return Index) & Price index including dividend payments (USD) & Annual \\
+        MV\_M & End-of-month market capitalisation (million USD) & Monthly \\
+        MV\_Y & End-of-year market capitalisation (million USD) & Annual \\
+        CO2*\_S1 & Scope 1 CO\(_2\) emissions (tonnes) & Annual \\
+        CO2*\_S2 & Scope 2 CO\(_2\) emissions (tonnes) & Annual \\
+        REV & Annual revenues (thousands USD) & Annual \\
+        \bottomrule
+    \end{tabularx}
+    \vspace{0.5em}
+    \par
+    {\raggedright\footnotesize\textsuperscript{*} Scope 1 covers direct emissions from sources owned or controlled by the firm (e.g., fuel combustion, industrial processes). Scope 2 covers indirect emissions from purchased electricity, heat, or steam.\par}
+\end{table}
+
+The \texttt{Static\_2025.xlsx} file provides the cross-sectional identifiers (ISIN, name, country, region) that link all time-series files together. The rest of the dataset is organized with one Excel file per raw data. Each file contains firms as rows and time periods as columns. From this, we derive:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Monthly simple returns:}
+    \[
+    R_{i,t} = \frac{P_{i,t}}{P_{i,t-1}} - 1,
+    \]
+    where \(P_{i,t}\) is the total return index of firm \(i\) at the end of month \(t\). The total return index  provides a comprehensive measure of investment performance.
+
+    \item \textbf{Carbon intensity:}
+    \[
+    CI_{i,Y} = \frac{CO2\_S1_{i,Y} + CO2\_S2_{i,Y}}{REV_{i,Y}/1000},
+    \]
+    expressed in tonnes of CO\(_2\) equivalent per million USD of revenue. The division by 1,000 converts revenues from thousands to millions of USD.
+\end{itemize}
+
+\subsection{Data Cleaning}
+
+The raw Datastream output requires several cleaning steps before it can be used for portfolio construction. These steps are applied sequentially to ensure that the investment strategy is based on reliable data.
+
+\subsubsection{Regional Filter and Error Removal}
+
+We first load the cross-sectional identifiers from \texttt{Static\_2025.csv} and retain only firms belonging to the regions assigned to our group: North America (AMER) and Europe (EUR). The resulting set of valid ISINs is used to filter all time-series files (returns, market capitalisations, emissions, revenues). In addition, rows flagged with the Datastream error code \texttt{\$\$ER} indicating that the identifier could not be matched to a valid security are removed from all tables to maintain consistency across the dataset.
+
+\subsubsection{Data Truncation  and Standardization}
+
+All date columns prior to January 2003 are dropped from every file. Since our first portfolio allocation occurs at end-2013, the 10-year estimation window requires data starting no earlier than 2003. Additionally, all empty cells and non-numeric placeholders are converted to \texttt{NaN}, ensuring that subsequent operations (forward-fill, return computation, filtering) treat missing data consistently across all files.
+
+\subsubsection{Treatment of Delisted Firms}
+
+Firms marked as \texttt{DEAD} in their Datastream name carry an embedded delisting date. For each delisted firm, we apply the following rule to the price and market capitalisation files (\texttt{RI\_M}, \texttt{RI\_Y}, \texttt{MV\_M}, \texttt{MV\_Y}) as:
+
+\begin{enumerate}[leftmargin=*]
+    \item The first period on or after the delisting date is set to zero. When returns are subsequently computed, this produces a $-100\%$ return, reflecting the total loss suffered by the investor.
+    \item All periods after this zero are set to \texttt{NaN}, since the firm no longer exists.
+\end{enumerate}
+
+This treatment avoids survivorship bias: ignoring delisted firms would overstate portfolio performance by excluding the worst-performing stocks.
+
+\subsubsection{Forward-Fill of Carbon and Revenue Data}
+
+For the annual variables \texttt{CO2\_S1}, \texttt{CO2\_S2}, and \texttt{REV}, missing values occurring after the firm's first valid observation are forward-filled using the most recent available value. Missing values before the first observation are left as \texttt{NaN}. No backward-fill is applied.
+
+\subsubsection{Replacement of Low Prices}
+
+Prices below 0.50~USD in the total return index are replaced with \texttt{NaN} to prevent extreme or infinite returns from distorting the covariance matrix. Delisting zeros set in the previous step are preserved to correctly capture $-100\%$ returns. In practice, this filter did not affect any firm in our AMER + EUR investment universe.
+
+\subsection{Investment Set Construction}
+
+The investment set is the list of firms eligible for inclusion in the portfolio at a given decision date. It is constructed annually, at the end of each year \(Y = 2013, 2014, \dots, 2024\), using a rolling 10-year estimation window (\(Y{-}9\) to \(Y\)) for return history and covariance estimation. The resulting set determines the composition of the portfolio for the following year \(Y+1\).
+
+\subsubsection{Return Computation}
+
+Monthly simple returns are computed from the cleaned total return index as described in Section~2.1. These returns serve as the basis for both the eligibility filters below and the covariance matrix estimation.
+
+\subsubsection{Eligibility Criteria}
+
+A firm is included in the investment set for year \(Y\) if it satisfies all of the following criteria simultaneously:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Sufficient return history.} The firm has at least 48 months (4 years) of non-missing monthly returns over the 10-year rolling window ending at end of year \(Y\).
+
+    \item \textbf{Price available at decision date.} The firm has a valid price in December of year \(Y\). Without a price at the decision date, portfolio weights cannot be computed.
+
+    \item \textbf{No stale prices.} The proportion of zero-return months over the 10-year estimation window does not exceed 50\%.
+
+    \item \textbf{Carbon and revenue data.} The firm has CO\(_2\) emissions (Scope~1 and Scope~2) and revenue data available for year \(Y\). This criterion ensures that carbon metrics such as Carbon Footprint  and Weighted Average Carbon Intensity (WACI) can be computed for all portfolio strategies.
+\end{enumerate}
+
+
+\subsubsection{Investment Decision Timing}
+
+The investment decision is made at end of year \(Y\) for portfolio implementation over year \(Y+1\). All inputs like the covariance matrix,  the market capitalisations, and  then carbon data are computed from information available at end of year \(Y\). The first decision date is end of December 2013 and the last is end of December 2024.
+
+\subsubsection{Full-Available-Data (FA) Variant}
+
+A stricter variant of the investment set, denoted \texttt{is\_\{year\}\_fa}, retains only firms with a complete 120-month return history over the estimation window (no missing values). This filter is required by the Ledoit-Wolf covariance estimator, which needs a complete data matrix as input. The FA set is smaller than the standard set, as it excludes firms listed less than 10 years ago or with trading halts.
+
+\subsection{Estimation of Expected Returns and the Covariance Matrix}
+
+\subsubsection{Expected Returns, Risk-Free Rate, and Estimation Window}
+
+For each decision date (end of year \(Y\)), we estimate the vector of expected returns and the covariance matrix from the most recent 10 years of monthly returns, corresponding to \(\tau = 120\) monthly observations. For instance, the allocation decided at end of December 2013 uses returns from January 2004 to December 2013.
+
+The expected return vector is computed as the sample mean over the estimation window:
+\begin{equation}
+\hat{\mu}_Y = \frac{1}{\tau} \sum_{k=0}^{\tau-1} R_{t-k}.
+\end{equation}
+
+The monthly risk-free rate is sourced from Datastream. Values are converted from percentages to decimals and filtered to cover the out-of-sample period (2014--2025). A cumulative return series is computed for comparison with portfolio performance.
+
+\subsubsection{Sample Covariance Matrix}
+
+The sample covariance matrix is computed as:
+\begin{equation}
+\Sigma_Y = \frac{1}{\tau-1} \sum_{k=0}^{\tau-1} (R_{t-k} - \hat{\mu}_Y)(R_{t-k} - \hat{\mu}_Y)'.
+\end{equation}
+
+This estimator operates on the full investment set, handling missing returns through pairwise-complete observations. When the number of firms \(N\) is large relative to \(\tau\), the matrix may be poorly conditioned or singular (\(N > \tau\)), which precludes the use of the closed-form minimum-variance solution and motivates the use of numerical optimization. The sample covariance matrix is paired with the SLSQP solver from \texttt{scipy.optimize} which handles the full investment set including firms with missing returns (the covariance is computed on available pairwise observations).
+
+\subsubsection{Single-Factor Model Covariance Matrix}
+
+As a second approach, we estimate the covariance matrix using a single-factor (market) model. For each asset \(i\), we regress its available returns on the value-weighted market return to obtain the market beta \(\beta_i\) and the idiosyncratic variance \(\sigma^2_{\varepsilon,i}\):
+\begin{equation}
+R_{i,t} = \alpha_i + \beta_i R_{m,t} + \varepsilon_{i,t}.
+\end{equation}
+
+The covariance matrix is then constructed as:
+\begin{equation}
+\Sigma_Y^{FM} = \beta \beta' \sigma^2_m + D,
+\end{equation}
+where \(\sigma^2_m\) is the variance of the market return and \(D = \text{diag}(\sigma^2_{\varepsilon,1}, \dots, \sigma^2_{\varepsilon,N})\) is the diagonal matrix of idiosyncratic variances. Each beta is estimated individually using only the months where the asset has available data, requiring a minimum of 12 observations. This allows the factor model to operate on the full investment set without dropping firms with incomplete histories.
+
+By construction, this matrix is always positive-definite, and it imposes more structure than the sample covariance by assuming that correlations between assets are driven by a single common factor. This reduces estimation noise at the cost of potential model misspecification if multiple factors are relevant. The factor model covariance is paired with the CVXPY/OSQP solver.
+
+\subsubsection{Ledoit-Wolf Shrinkage Estimator}
+
+The third approach employs the Ledoit-Wolf (2004) shrinkage estimator, which shrinks the sample covariance matrix toward a structured target to reduce estimation error:
+\begin{equation}
+\Sigma_Y^{LW} = \delta \cdot F + (1 - \delta) \cdot S,
+\end{equation}
+where \(S\) is the sample covariance matrix, \(F\) is the shrinkage target (scaled identity), and \(\delta \in [0,1]\) is the optimal shrinkage intensity, determined analytically to minimize the expected loss under the Frobenius norm.
+
+Unlike the two previous estimators, the Ledoit-Wolf approach requires a complete data matrix with no missing values. We therefore apply the Full-Available-Data (FA) filter, retaining only firms with a complete 120-month return history. The resulting matrix is always positive-definite, with reduced eigenvalue dispersion leading to more stable and diversified portfolio weights. The shrinkage intensity adapts automatically: it shrinks more when estimation noise is high (large \(N\), small \(\tau\)) and less when the sample covariance is reliable. The Ledoit-Wolf estimator is paired with the CVXPY/OSQP solver, using the FA subset.
+
+\subsection{Performance Statistics}
+
+For each portfolio, the following summary statistics are computed over the full 144-month out-of-sample period:
+
+\begin{table}[H]
+    \centering
+    \caption{Performance statistics}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Statistic} & \textbf{Formula} & \textbf{Interpretation} \\
+        \midrule
+        Annualized Return     & $(1 + \bar{r})^{12} - 1$                & Compounded average monthly return \\[4pt]
+        Annualized Volatility & $\hat{\sigma} \times \sqrt{12}$         & Monthly std.\ dev.\ scaled to annual \\[4pt]
+        Sharpe Ratio          & $SR_p^{(m)} = \dfrac{\overline{R}_p^{(m)} - R_f}{\sigma_p^{(m)}}$ & Risk-adjusted return per unit of risk \\[10pt]
+        Min Monthly Return    & $\min(r_t)$                             & Worst single-month performance \\[4pt]
+        Max Monthly Return    & $\max(r_t)$                             & Best single-month performance \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Part I --- Standard Portfolio Allocation}
+\label{sec:part1}
+
+\subsection{Value-Weighted Portfolio}
+
+\subsubsection{Construction}
+
+The value-weighted (VW) portfolio serves as the primary benchmark throughout this project. It represents the market-capitalization-weighted portfolio of all firms in the investment set.
+
+At the end of each year \(Y\), the initial weights are computed from the end-of-year market capitalisations:
+\begin{equation}
+w_{i,Y} = \frac{Cap^{Y}_{i}}{\sum_{j=1}^{N} Cap^{Y}_{j}}.
+\end{equation}
+
+For the following months of year \(Y+1\), the weights are recomputed using the most recent end-of-month market capitalisations:
+\begin{equation}
+w_{i,t} = \frac{Cap^{M}_{i,t-1}}{\sum_{j=1}^{N} Cap^{M}_{j,t-1}},
+\end{equation}
+where \(Cap^{M}_{i,t-1}\) is the market capitalisation of firm \(i\) at the end of the previous month. Specifically, January returns are computed using end-of-December weights (\(w_{i,Y}\)), February returns use end-of-January market caps, and so on through December. This monthly rebalancing ensures that weights reflect the most recent market values rather than relying on potentially stale annual figures.
+
+The monthly portfolio return is then:
+\begin{equation}
+R_{p,t} = \sum_{i=1}^{N} w_{i,t-1} \times R_{i,t}.
+\end{equation}
+
+\subsubsection{Full-Available-Data Variant (VW-FA)}
+
+A second value-weighted portfolio is computed on the full-available-data (FA) subset, retaining only firms with a complete 120-month return history. Weights are renormalized to sum to 1 after removing firms with incomplete data. The VW-FA portfolio serves as the benchmark for the Ledoit-Wolf tracking-error minimization (Section~4.3) and the net-zero strategy (Section~4.5), ensuring that the tracking error is computed over the same set of firms for which the Ledoit-Wolf covariance matrix is defined.
+
+\subsubsection{Full-Available-Data Variant with Drifting Weights (VW-FA Drift)}
+
+For comparison purposes, we also construct a version of the VW-FA portfolio where the weights are not recomputed monthly from market capitalisations but instead drift with realized returns using the same buy-and-hold mechanism as the minimum-variance and carbon-constrained portfolios:
+\[
+w_{i,t+1} = \frac{w_{i,t}(1+R_{i,t+1})}{1+R_{p,t+1}}.
+\]
+This variant isolates the effect of the rebalancing frequency: by comparing VW-FA (monthly rebalanced) with VW-FA Drift (annual rebalancing with drift), we can assess whether the performance differences between the VW benchmark and the optimized portfolios are driven by the allocation itself or simply by the fact that the VW portfolio benefits from monthly weight updates while the others do not.
+
+\subsection{Minimum-Variance Portfolio}
+
+\subsubsection{Optimization Problem}
+
+The minimum-variance (MV) portfolio is constructed by solving the following formula at the end of each year \(Y\):
+\begin{equation}
+\min_{\alpha} \quad \alpha' \Sigma_Y \alpha
+\end{equation}
+subject to
+\begin{equation}
+\sum_{i=1}^{N} \alpha_i = 1, \qquad \alpha_i \geq 0 \quad \forall i.
+\end{equation}
+
+The objective is to find the portfolio with the lowest possible variance (risk) among all portfolios that are fully invested (weights sum to 1) and long-only (no short selling). The long-only constraint is important for two reasons: (i) it makes the portfolio practically implementable for most investors, and (ii) it facilitates the interpretation of the portfolio's carbon footprint in Part II, since carbon attribution is only meaningful for long positions. 
+
+\subsubsection{Implementation}
+
+The optimization is solved three times for each year \(Y\), once per covariance estimator:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Sample covariance (SLSQP).} The SLSQP algorithm from \texttt{scipy.optimize.minimize} is a gradient-based method that handles equality and inequality constraints efficiently. The optimizer is initialized with the equal-weight vector (\(1/N\)), which provides a feasible starting point satisfying both the full-investment and non-negativity constraints. This operates on the full investment set.
+
+    \item \textbf{Factor model (CVXPY/OSQP).} The single-factor covariance matrix is used with the CVXPY framework and the OSQP solver. This also operates on the full investment set.
+
+    \item \textbf{Ledoit-Wolf (CVXPY/OSQP).} The Ledoit-Wolf shrinkage covariance matrix is used with CVXPY/OSQP, operating on the FA subset only.
+\end{enumerate}
+
+For all three implementations, a scaling factor of 10,000 is applied to the covariance matrix before optimization. This improves numerical conditioning by bringing the eigenvalues of \(\Sigma\) to a range where the solver's default tolerances are appropriate. We verify that the scaled and unscaled solutions coincide up to numerical precision.
+
+For the CVXPY implementations, small negative weights (on the order of \(10^{-8}\) to \(10^{-10}\)) may arise from solver numerical noise. These are clipped to zero and the weight vector is renormalized to sum to 1.
+
+\subsubsection{Convergence Verification}
+
+To verify the reliability of each solver, we check whether the solutions 
+are consistent across both the original covariance matrix \(\Sigma_Y\) 
+and the scaled version \(10{,}000 \times \Sigma_Y\).
+
+The SLSQP solver (sample covariance) fails this consistency check for every year in the sample, with systematic differences between the scaled and unscaled objective values. This indicates that SLSQP struggles with the poorly conditioned sample covariance matrix, particularly when \(N > \tau\). The CVXPY/OSQP solver performs significantly better: the factor model passes the check for 7 out of 13 years, and the Ledoit-Wolf estimator for 8 out of 13. The years where inconsistencies arise (notably 2017--2018 and 2020--2021) coincide with periods of elevated market volatility, which increases the conditioning number of the covariance matrix.
+
+These results suggest that the CVXPY/OSQP solver paired with the Ledoit-Wolf estimator provides the most reliable optimization, consistent with the theoretical properties of the shrinkage estimator. The SLSQP results should be interpreted with caution, as the solver may not have reached the true minimum in any given year.
+
+\subsubsection{Buy-and-Hold Weight Drift}
+
+Unlike the VW portfolio, which is rebalanced monthly using updated market capitalisations, the MV portfolio follows a buy-and-hold strategy within each year. Weights are set by the optimizer at the end of year \(Y\) and then drift passively according to realized returns. The effective weight of firm \(i\) at the beginning of month \(t+k\) (for \(k = 1, \dots, 12\)) evolves as:
+\begin{equation}
+\alpha_{i,t+k-1} = \alpha_{i,t+k-2} \times \frac{1 + R_{i,t+k-1}}{1 + R_{p,t+k-1}},
+\end{equation}
+with the initialization \(\alpha_{i,t} = \alpha_{i,Y}\) at the start of the year. The weight of a stock increases when it outperforms the portfolio and decreases when it underperforms. Firms with missing returns in a given month are assigned a return of zero.
+
+The monthly portfolio return at time \(t+k\) is:
+\begin{equation}
+R_{p,t+k} = \sum_i \alpha_{i,t+k-1} \times R_{i,t+k}.
+\end{equation}
+
+This is different from applying fixed weights to each month's returns, which would correspond to monthly rebalancing. The buy-and-hold approach is more realistic as it does not assume the investor trades every month.
+
+\subsection{Results and Comparison}
+
+\subsubsection{Portfolio Statistics}
+
+\begin{table}[H]
+\centering
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Annualized performance statistics --- All Part I portfolios.}
+\label{tab:stats_all_part1}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+ & \textbf{VW} & \textbf{VW-FA} & \textbf{VW-FA Drift} & \textbf{MV (Sample)} & \textbf{MV (Factor)} & \textbf{MV (LW)} \\
+\midrule
+Annualized Average Return    & 11.59\% & 11.66\% & 11.35\% & 7.71\% & 8.66\% & 7.34\% \\
+Annualized Volatility        & 14.27\% & 14.25\% & 14.36\% & 12.01\% & 12.42\% & 11.57\% \\
+Annualized Cumulative Return & 11.11\% & 11.18\% & 10.82\% & 7.22\% & 8.18\% & 6.88\% \\
+Sharpe Ratio                 & 0.69    & 0.70    & 0.67    & 0.50   & 0.56   & 0.48 \\
+Minimum Monthly Return       & $-13.15$\% & $-13.08$\% & $-13.80$\% & $-14.11$\% & $-10.87$\% & $-12.07$\% \\
+Maximum Monthly Return       & 12.90\% & 12.86\% & 13.38\% & 12.20\% & 10.96\% & 11.16\% \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:stats_all_part1} confirms several key findings. The VW and VW-FA portfolios deliver nearly identical performance (11.59\% vs.\ 11.66\% annualized return, Sharpe ratios of 0.69 and 0.70), confirming that restricting the universe to firms with complete return histories does not materially affect the benchmark.
+
+The three MV portfolios achieve lower volatility than the VW benchmark (11.57--12.42\% vs.\ 14.27\%), consistent with their objective. However, this comes at the cost of significantly lower returns (7.34--8.66\%), resulting in lower Sharpe ratios (0.48--0.56). This trade-off between lower risk and lower return is expected: the optimizer concentrates weights on a small number of low-volatility firms, sacrificing exposure to the high-growth stocks that drive the benchmark's performance.
+
+Among the MV portfolios, the factor model variant offers the best Sharpe ratio (0.56). The Ledoit-Wolf variant achieves the lowest volatility (11.57\%) but also the lowest return (7.34\%): shrinkage finds an optimal trade-off between the unbiased but noisy sample covariance and a structured target with low estimation error, producing more diversified and stable weights. However, the smaller FA investment universe limits diversification opportunities and excludes some return-enhancing exposures. The sample covariance variant (SLSQP) sits at the other extreme being unbiased but subject to large estimation error when $N$ is large relative to $\tau$ as explained in Section 2.4.4
+
+\subsubsection{Cumulative Returns}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/CR_VW_MVP.png}
+    \captionsetup{font=footnotesize, justification=centering}
+    \caption{Cumulative returns --- Part I portfolios and Risk-Free Rate (2014--2025)}
+\end{figure}
+
+The VW portfolios reach a cumulative value of approximately 3.5 by end-2025, while the MV variants end between 2.2 and 2.6. The trajectories are relatively close until 2018, after which the VW benchmark pulls ahead, driven by the strong performance of large-cap growth stocks. This divergence illustrates the concentration cost of minimum-variance optimization: by tilting toward low-volatility firms, the MV portfolios systematically underweight the large-cap stocks that dominate market returns in the post-2018 period. The factor model variant outperforms the other two MV portfolios, while the Ledoit-Wolf variant consistently lags due to its restricted investment universe. This reflects the fundamental bias-variance trade-off in covariance estimation: reducing estimation error through shrinkage improves portfolio stability, but may introduce bias that excludes beneficial returns present in the full investment set.
+
+\section{Part II --- Portfolio Allocation with Carbon Emission Reduction}
+\label{sec:part2}
+
+\subsection{Weighted Average Carbon Intensity and Carbon Footprint Objective}
+
+\subsubsection{Weighted Average Carbon Intensity (WACI)}
+
+Carbon intensity explained in section 2.1, is a normalization of absolute emissions by firm size (revenues). It allows meaningful comparisons across firms of different sizes: a large utility company may have higher absolute emissions than a small manufacturer, but lower carbon intensity if its revenues are proportionally larger. We verified our CI computation against published Trucost data for Exxon Mobil in 2019, obtaining a value consistent with the reported figure of approximately 470 tCO\(_2\)e/M\$rev.
+
+The portfolio-level WACI aggregates firm-level carbon intensity using portfolio weights:
+\begin{equation}
+WACI_Y^{(p)} = \sum_{i=1}^{N} \alpha_{i,Y} \times CI_{i,Y}.
+\end{equation}
+
+WACI represents the carbon intensity of the portfolio's underlying companies, weighted by the investor's allocation. It answers the question: \enquote{On average, how carbon-intensive are the companies in my portfolio?} A higher WACI indicates that the portfolio is tilted toward more carbon-intensive firms. We compute WACI for the value-weighted portfolio on the full-available-data subset (VW-FA) for each year from 2013 to 2024.
+
+\subsubsection{Carbon Footprint (CF)}
+
+The carbon footprint measures the CO\(_2\) emissions attributed to the investor per million USD invested:
+\begin{equation}
+CF_Y^{(p)} = \sum_{i=1}^{N} \alpha_{i,Y} \times \frac{E_{i,Y}}{Cap_{i,Y}},
+\end{equation}
+where \(E_{i,Y} = CO2\_S1_{i,Y} + CO2\_S2_{i,Y}\) is total emissions (tonnes) and \(Cap_{i,Y} = MV_Y\) (market capitalisation in million USD). The result is in tonnes of CO\(_2\) per million USD invested (tCO\(_2\)e/M\$inv).
+
+The CF metric differs from WACI in that it normalizes emissions by market capitalisation rather than revenues. This means that CF captures the investor's proportional share of emissions: by investing \(\alpha_i\) of the portfolio in firm \(i\), the investor \enquote{owns} \(\alpha_i \times (V_{\text{portfolio}} / Cap_i)\) of the firm, and therefore \(\alpha_i \times (V_{\text{portfolio}} / Cap_i) \times E_i\) of the firm's emissions. The portfolio value \(V_{\text{portfolio}}\) cancels out, leaving the CF formula above. This CF metric used for all carbon constraints in the optimization problems (Sections~4.2, 4.3, and 4.5).
+
+\subsubsection{Evolution of Carbon Metrics}
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/WACI.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/CF.png}
+\end{minipage}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{WACI (left) and Carbon Footprint (right) of the VW-FA portfolio over 2013--2024.}
+\label{fig:WACI_CF_evolution}
+\end{figure}
+
+Both metrics follow a similar overall pattern but with notable differences. WACI remains relatively stable around 200~tCO$_2$e/M\$rev between 2013 and 2017, before declining sharply to approximately 100 by 2024. CF starts higher at roughly 180~tCO$_2$e/M\$inv and decreases to around 60 by 2024. The initial plateau in WACI, contrasted with the earlier decline in CF, reflects their distinct normalizations. CF scales emissions by market capitalisation, so it responds directly to valuation-driven weight changes: when firms with lower emissions per dollar of market cap appreciate faster, the portfolio CF falls even without any firm actually reducing its emissions. WACI, which scales by revenues, is less sensitive to such market dynamics. This distinction is important for portfolio construction. Because CF is linear in portfolio weights, it can be directly incorporated as a constraint in mean-variance optimization, whereas WACI cannot.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/effect_decomposition.png}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Decomposition of WACI and Carbon Footprint into emission effect, composition effect, and excluded firms effect (2013--2024).}
+\label{fig:Effect Decomposition}
+\end{figure}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Emission effect:} We fix portfolio weights at their 2013 values and let emissions (for CF) or carbon intensities (for WACI) evolve. The difference between this counterfactual and the 2013 baseline isolates the contribution of firm-level decarbonization.
+    \item \textbf{Composition effect:} We fix emissions at their 2013 values and let portfolio weights evolve. This isolates the contribution of weight rebalancing, as the value-weighted portfolio mechanically shifts toward firms whose market capitalisation grows faster.
+    \item \textbf{Excluded firms effect:} Firms that enter the full-available-data universe after 2013 are not part of the 2013 base and thus not captured by the two effects above. This captures the dilution effect of new entrants, which tend to have lower carbon intensity as carbon reporting coverage expands.
+\end{enumerate}
+
+The decomposition reveals that the decline in both WACI and CF is driven primarily by the emission effect and the lower carbon intensity of excluded firms, rather than by changes in portfolio composition. The composition effect remains relatively stable over the period, indicating that weight rebalancing alone does not significantly reduce portfolio carbon metrics. In contrast, the emission effect declines markedly, meaning that firms in the 2013 base universe are genuinely reducing their carbon intensity over time. The excluded firms consistently display lower carbon levels than the base universe, so their progressive entry into the full-available-data universe contributes to pulling the actual portfolio metrics downward. This suggests that the observed greening of the VW-FA portfolio reflects a combination of real corporate decarbonization and the inclusion of cleaner firms as carbon reporting coverage expands.
+
+\subsection{Long-Only Portfolio with a Carbon Footprint Objective}
+
+\subsubsection{Optimization Problem}
+
+We construct a minimum-variance portfolio subject to a carbon footprint constraint. The portfolio CF must be at most 50\% of the unconstrained minimum-variance portfolio's CF in the same year:
+\begin{equation}
+\min_{\alpha} \quad \alpha' \Sigma_Y^{LW} \alpha
+\end{equation}
+subject to
+\begin{equation}
+CF_Y^{(p)} \leq 0.5 \times CF_Y^{(mv)}, \qquad \sum_{i=1}^{N} \alpha_i = 1, \qquad \alpha_i \geq 0 \quad \forall i,
+\end{equation}
+where \(\Sigma_Y^{LW}\) is the Ledoit-Wolf shrinkage covariance matrix and \(CF_Y^{(mv)}\) is the carbon footprint of the unconstrained minimum-variance (Ledoit-Wolf) portfolio for year \(Y\). 
+
+The constraint is re-evaluated each year: the 50\% reduction target is relative to the current year's unconstrained MV portfolio. Residual negative weights arising from numerical noise in the solver are clipped to zero and the weight vector is renormalized to sum to one.
+
+\subsubsection{Interpretation}
+
+This portfolio represents the perspective of an \textbf{active investor} who seeks minimum variance while accepting a significant carbon constraint. The optimizer achieves the 50\% CF reduction by tilting weights away from carbon-intensive firms and toward cleaner alternatives. The financial cost of this constraint depends on the relationship between carbon intensity and the variance-covariance structure:
+
+\begin{itemize}[leftmargin=*]
+    \item If carbon-intensive firms happen to be high-volatility, the carbon constraint may have little cost, because the optimizer would already be underweighting these firms for variance reasons.
+    \item If carbon-intensive firms are low-volatility, the constraint forces the optimizer to give up diversification benefits, resulting in a higher portfolio variance.
+\end{itemize}
+
+\subsubsection{Results}
+
+\begin{table}[H]
+\centering
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Annualized performance statistics --- VW-FA, VW-FA Drift, MV (Ledoit-Wolf), and MV CF-Constrained (Ledoit-Wolf).}
+\label{tab:stats_cf_drift}
+\begin{tabular}{lcccc}
+\toprule
+ & \textbf{VW-FA} & \textbf{VW-FA Drift} & \textbf{MV (LW)} & \textbf{MV-CF (LW)} \\
+\midrule
+Annualized Average Return      & 11.66\% & 11.35\% & 7.34\% & 7.29\% \\
+Annualized Volatility          & 14.25\% & 14.36\% & 11.57\% & 11.48\% \\
+Annualized Cumulative Return   & 11.18\% & 10.82\% & 6.88\% & 6.83\% \\
+Sharpe Ratio                   & 0.70    & 0.67    & 0.48   & 0.48 \\
+Minimum Monthly Return         & $-13.08$\% & $-13.80$\% & $-12.07$\% & $-11.52$\% \\
+Maximum Monthly Return         & 12.86\% & 13.38\% & 11.16\% & 11.25\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:stats_cf_drift} shows that the CF constraint has a negligible impact on the minimum-variance portfolio. The annualized return decreases only marginally from 7.34\% to 7.29\%, volatility drops from 11.57\% to 11.48\%, and the Sharpe ratio remains at 0.48. This suggests that the most carbon-intensive firms are not key contributors to the minimum-variance solution: the optimizer was already underweighting them for variance reasons, so the carbon constraint does not force a significant departure from the unconstrained weights.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/CRC_VW_MVP.png}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Cumulative returns --- VW-FA, MV (Ledoit-Wolf), MV CF-Constrained (Ledoit-Wolf), and risk-free rate (2014--2026).}
+\label{fig:cum_returns}
+\end{figure}
+
+Figure~\ref{fig:cum_returns} confirms this observation. The cumulative return paths of the unconstrained and CF-constrained minimum-variance portfolios are nearly indistinguishable, both reaching approximately 2.2 by end of 2025. The VW-FA and VW-FA Drift benchmarks both end around 3.5, with the divergence from the MV portfolios accelerating after 2020. The carbon constraint does not amplify the performance gap between optimized and passive strategies.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/CFC.png}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Carbon Footprint --- MV (Ledoit-Wolf) vs.\ MV CF-Constrained (Ledoit-Wolf), 2013--2024.}
+\label{fig:cf_mvp}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/WACIC.png}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Weighted-Average Carbon Intensity --- MV (Ledoit-Wolf) vs.\ MV CF-Constrained (Ledoit-Wolf), 2013--2024.}
+\label{fig:waci_mvp}
+\end{figure}
+
+Figure~\ref{fig:cf_mvp} shows that the CF-constrained portfolio maintains a substantially lower carbon footprint than the unconstrained MV portfolio. In the first years, its carbon footprint remains clearly below the 50\% constraint, suggesting that the restriction is not initially binding. However, after around three years, the constraint becomes effectively binding, and the portfolio remains pinned to the 50\% target thereafter and so lowering by following the same curve as the non constrained MVP.
+
+Figure~\ref{fig:waci_mvp} shows a similar pattern. The unconstrained MV portfolio remains much more carbon-intensive throughout the sample, whereas the CF-constrained portfolio follows a much lower trajectory. This confirms that the carbon constraint effectively redirects capital away from the most polluting firms.
+
+Overall, these results indicate that halving the carbon footprint of the minimum-variance portfolio comes at a very low financial cost in our investment universe: the Sharpe ratio is preserved while both CF and WACI are substantially reduced.
+
+\subsection{Tracking Error Minimization}
+
+\subsubsection{Optimization Problem}
+
+The tracking-error strategy targets a \textbf{passive investor} who wants to track the value-weighted benchmark as closely as possible while reducing carbon emissions. The optimization problem minimizes the tracking error each year:
+\begin{equation}
+\min_{\{\alpha_Y\}} \quad TE_{p,Y} = \sqrt{(\alpha_Y - \alpha_Y^{(vw)})' \Sigma_Y (\alpha_Y - \alpha_Y^{(vw)})}
+\end{equation}
+\textit{s.t.}
+\begin{align}
+CF_Y^{(p)} &\leq 0.5 \times CF_Y^{(P^{(vw)})} \\
+\alpha_Y' e &= 1 \\
+\alpha_{i,Y} &\geq 0 \qquad \text{for all } i
+\end{align}
+where $CF_Y^{(P^{(vw)})} = \frac{1}{Cap_Y} \sum_{i=1}^{N} E_{i,Y}$ denotes the carbon footprint of the value-weighted portfolio, with $Cap_Y = \sum_{i=1}^{N} Cap_{i,Y}$ the total market value of the investment set, and $\alpha_Y^{(vw)}$ is the vector of VW-FA benchmark weights.
+
+The optimization is solved using CVXPY with the OSQP solver and the Ledoit-Wolf covariance matrix. The CF reference is computed over the full investment set using the VW-FA weights. As for the previous portfolios, monthly returns are computed using buy-and-hold weight drift.
+
+
+\subsection{Comparison of Carbon-Constrained Portfolios}
+
+\begin{table}[H]
+\centering
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Annualized performance statistics --- VW-FA, VW-FA Drift, MV (Ledoit-Wolf), MV CF-Constrained (Ledoit-Wolf), and TE (Ledoit-Wolf).}
+\label{tab:stats_te_all}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+ & \textbf{VW-FA} & \textbf{VW-FA Drift} & \textbf{MV (LW)} & \textbf{MV-CF (LW)} & \textbf{TE (LW)} \\
+\midrule
+Annualized Average Return      & 11.66\% & 11.35\% & 7.34\% & 7.29\% & 11.28\% \\
+Annualized Volatility          & 14.25\% & 14.36\% & 11.57\% & 11.48\% & 14.36\% \\
+Annualized Cumulative Return   & 11.18\% & 10.82\% & 6.88\% & 6.83\% & 10.75\% \\
+Sharpe Ratio                   & 0.70    & 0.67    & 0.48   & 0.48   & 0.66 \\
+Minimum Monthly Return         & $-13.08$\% & $-13.80$\% & $-12.07$\% & $-11.52$\% & $-13.78$\% \\
+Maximum Monthly Return         & 12.86\% & 13.38\% & 11.16\% & 11.25\% & 13.43\% \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:stats_te_all} allows a direct comparison of all portfolios. Adding the carbon constraint to the MV portfolio has virtually no effect (Sharpe of 0.48 for both MV and MV-CF), confirming that the constraint is nearly costless for a minimum-variance investor. The TE portfolio, designed for a passive investor, delivers a return of 11.28\% with a Sharpe ratio of 0.66, very close to the VW-FA Drift benchmark (0.67), while achieving the same 50\% carbon reduction. The choice between the two strategies thus depends on the investor's objective: minimizing absolute risk at the expense of return, or maintaining benchmark-like performance while decarbonizing.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/TE.png}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Cumulative returns --- VW-FA, VW-FA Drift, MV (Ledoit-Wolf), MV CF-Constrained (Ledoit-Wolf), TE (Ledoit-Wolf), and risk-free rate (2014--2026).}
+\label{fig:cumulative_returns_te}
+\end{figure}
+
+Figure~\ref{fig:cumulative_returns_te} confirms these findings. The TE portfolio closely tracks the VW-FA and VW-FA Drift benchmarks until around 2022, after which it slightly underperforms, ending at approximately 3.0 compared to 3.3 for VW-FA Drift and 3.5 for VW-FA. This modest divergence reflects the cumulative cost of the carbon constraint over time: by restricting the set of admissible portfolios, the constraint prevents the optimizer from fully replicating the benchmark weights, and this tracking cost compounds year after year. The MV and MV-CF portfolios remain grouped around 2.2, well below the benchmark trajectories.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/WACI_TE.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/CF_TE.png}
+\end{minipage}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{WACI (left) and Carbon Footprint (right) of the Tracking Error portfolio (Ledoit-Wolf) over 2013--2024.}
+\label{fig:waci_cf_te}
+\end{figure}
+
+Regarding carbon metrics (Figure~\ref{fig:waci_cf_te}), the TE portfolio achieves a substantial reduction in both indicators over the sample period. WACI shows a temporary increase around 2017 before declining steadily, while CF follows a more regular downward path. Both metrics end well below their starting levels by 2024, and remain significantly lower than those of the unconstrained MV portfolio observed in Section~4.2, confirming that the 50\% CF reduction target relative to the VW-FA benchmark is comfortably met throughout the sample. The optimizer successfully redirects capital away from carbon-intensive firms while maintaining close tracking of the benchmark.
+
+\subsection{Portfolio Allocation with a Net Zero Objective}
+\label{sec:netzero}
+
+\subsubsection{Strategy and Constraint}
+
+The net-zero strategy extends the tracking-error minimization framework of Section~4.3 by replacing the static 50\% CF reduction with a time-varying constraint that enforces a compounding annual reduction from a fixed baseline:
+\begin{equation}
+CF_Y^{(p)} \leq (1 - \theta)^{Y - Y_0 + 1} \, CF_{Y_0}^{(vw)},
+\end{equation}
+where $\theta = 10\%$ is the annual reduction rate, $Y_0 = 2013$ is the baseline year, and $CF_{2013}^{(vw)}$ is the carbon footprint of the VW-FA portfolio in 2013, computed once and held fixed as the reference throughout the sample. After 10 years, the portfolio's CF must be below $0.9^{10} = 34.9\%$ of the 2013 level, and by 2024 below $0.9^{12} = 28.2\%$.
+
+The optimization problem is identical to the tracking-error minimization of Section~4.3, with only the CF constraint replaced by the net-zero trajectory defined above. The optimization is solved using CVXPY with the OSQP solver and the Ledoit-Wolf covariance matrix, with tighter convergence tolerances to ensure feasibility under the strict later-year constraints. As for all other portfolios, monthly returns are computed using buy-and-hold weight drift.
+
+\subsubsection{Comparison of Portfolios and Cost of Net Zero}
+
+\begin{table}[H]
+\centering
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Annualized performance statistics --- All portfolios including Net Zero (Ledoit-Wolf).}
+\label{tab:stats_nz_all}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+ & \textbf{VW-FA} & \textbf{VW-FA Drift} & \textbf{MV (LW)} & \textbf{MV-CF (LW)} & \textbf{TE (LW)} & \textbf{NZ (LW)} \\
+\midrule
+Annualized Average Return      & 11.66\% & 11.35\% & 7.34\% & 7.29\% & 11.28\% & 11.33\% \\
+Annualized Volatility          & 14.25\% & 14.36\% & 11.57\% & 11.48\% & 14.36\% & 14.36\% \\
+Annualized Cumulative Return   & 11.18\% & 10.82\% & 6.88\% & 6.83\% & 10.75\% & 10.81\% \\
+Sharpe Ratio                   & 0.70    & 0.67    & 0.48   & 0.48   & 0.66   & 0.67 \\
+Minimum Monthly Return         & $-13.08$\% & $-13.80$\% & $-12.07$\% & $-11.52$\% & $-13.78$\% & $-13.78$\% \\
+Maximum Monthly Return         & 12.86\% & 13.38\% & 11.16\% & 11.25\% & 13.43\% & 13.39\% \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/NZ.png}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{Cumulative returns --- VW-FA, VW-FA Drift, MV (Ledoit-Wolf), MV CF-Constrained (Ledoit-Wolf), TE (Ledoit-Wolf), NZ (Ledoit-Wolf), and risk-free rate (2014--2026).}
+\label{fig:cumulative_returns_nz}
+\end{figure}
+
+Table~\ref{tab:stats_nz_all} shows that the NZ portfolio performs remarkably close to the TE portfolio despite its more stringent carbon constraint. With a return of 11.33\% and a Sharpe ratio of 0.67, the NZ portfolio is nearly indistinguishable from the VW-FA Drift benchmark. This is somewhat surprising: the net-zero constraint imposes a compounding reduction that reaches 28.2\% of the 2013 baseline by 2024, well beyond the static 50\% target of the TE portfolio. The low financial cost is explained by the fact that the investment universe itself decarbonizes over the sample period, as shown in Section~4.1, which relaxes the effective tightness of the constraint.
+
+Figure~\ref{fig:cumulative_returns_nz} confirms that the NZ and TE portfolios follow nearly identical trajectories throughout the sample, both ending around 3.4. They closely track the VW-FA Drift benchmark until 2022, after which a modest gap appears as the carbon constraints compound over time. The near-overlap between the NZ and TE trajectories suggests that the additional cost of a net-zero path is negligible, because the natural decarbonization of the investment universe keeps the constraint from becoming severely binding.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/WACI_NZ.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/CF_NZ.png}
+\end{minipage}
+\captionsetup{font=footnotesize, justification=centering}
+\caption{WACI (left) and Carbon Footprint (right) of the Net Zero portfolio (Ledoit-Wolf) over 2013--2024.}
+\label{fig:waci_cf_nz}
+\end{figure}
+
+Figure~\ref{fig:waci_cf_nz} shows that the NZ portfolio achieves a deep and progressive carbon reduction over the sample. CF declines smoothly, closely following the compounding reduction path imposed by the net-zero constraint. This trajectory reflects the logic of a finite carbon budget: each year, the portfolio must consume a smaller share of the remaining budget, which translates into the exponentially tightening constraint observed in the CF curve. WACI follows a similar downward trend, with a temporary plateau around 2017 before resuming its decline.
+
+The comparison between the TE and NZ portfolios is instructive because they share the same objective function but differ in the stringency of the carbon constraint. In the early years, the NZ budget is more generous than the static 50\% target, allowing the NZ portfolio to stay closer to the benchmark. In the later years, the NZ budget drops well below 50\%, forcing greater deviations. This time-varying nature means that the cost of a net-zero commitment is back-loaded and will depend critically on the pace of decarbonization of the investment universe in the years ahead.
+
+
+
+
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Financial Performance vs.\ Carbon Reduction}
+
+The results across all portfolio strategies point to a consistent finding: moderate carbon reduction can be achieved at a low financial cost. The MV-CF portfolio halves its carbon footprint relative to the unconstrained MV portfolio while preserving an identical Sharpe ratio of 0.48. The TE portfolio achieves the same 50\% reduction with a Sharpe ratio of 0.66, close to the VW-FA Drift benchmark (0.67). Even the more ambitious NZ trajectory delivers a Sharpe ratio of 0.67 despite requiring the portfolio's carbon footprint to fall below 28.2\% of the 2013 baseline by 2024.
+
+This low cost can be explained by two factors. First, the natural decarbonization of the investment universe, driven by firm-level emission reductions and the entry of cleaner firms, progressively relaxes the effective tightness of the carbon constraints. Second, carbon intensity does not appear to be strongly correlated with the factors that drive the minimum-variance or benchmark-tracking solutions, allowing the optimizer to substitute among firms without significantly distorting the portfolio's risk profile.
+
+However, the cost of decarbonization is not uniform across strategies. The minimum-variance approach sacrifices return for lower absolute risk, while the tracking-error approach preserves benchmark-like performance. Both achieve similar carbon reductions, but the financial trade-off differs: an active investor accepting lower returns faces almost no additional cost from the carbon constraint, whereas a passive investor pays a small but growing tracking cost that compounds over time, particularly under the net-zero trajectory.
+
+The decomposition analysis of Section~4.1 provides further context. The observed decline in portfolio-level carbon metrics is not solely attributable to the optimization constraints: the VW-FA benchmark itself experiences a significant drop in both WACI and CF over the sample, driven primarily by firm-level emission reductions and the entry of cleaner firms into the investment universe. This means that part of the carbon improvement attributed to the constrained portfolios would have occurred passively. Disentangling the contribution of the optimizer from the natural greening of the universe is essential for evaluating whether the carbon constraints are genuinely steering capital or merely benefiting from favorable trends.
+
+Finally, the choice of covariance estimator plays an important role in Part~I but has limited impact on the carbon-constrained results. All Part~II portfolios use the Ledoit-Wolf estimator exclusively, which produces the most stable weights but operates on a smaller investment universe. Whether using a different estimator on the full investment set would yield materially different carbon-performance trade-offs remains an open question.
+
+\subsection{Suggestions for Improvements}
+
+Several extensions could enhance the robustness and practical relevance of this analysis:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{WACI-based constraints.} The current carbon constraints target CF only. Since WACI normalizes by revenues rather than market capitalisation, it captures a different dimension of carbon exposure. Adding a WACI constraint alongside CF could prevent the optimizer from concentrating on firms that appear clean in CF terms but remain carbon-intensive relative to their revenues.
+
+    \item \textbf{Transaction costs and turnover constraints.} Annual rebalancing involves trading costs (commissions, bid-ask spreads, market impact) that reduce net returns. Adding a turnover constraint or incorporating a transaction cost penalty in the objective function would produce more realistic performance estimates.
+
+    \item \textbf{Parameter sensitivity analysis.} The stale-price threshold (50\%), minimum return history (48 months), and estimation window length (10 years) are chosen based on practical considerations. A systematic sensitivity analysis would reveal how robust the results are to alternative parameter choices.
+
+    \item \textbf{Out-of-sample robustness.} The analysis covers a single sample period (2014--2025). Testing the strategies on different regions, time periods, or market regimes (e.g., periods of rising interest rates or commodity shocks) would help assess whether the low cost of carbon constraints generalizes beyond our specific sample.
+\end{itemize}
+
+\subsection{Limitations}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Data quality and carbon reporting coverage.} Carbon data coverage varies significantly across firms and is limited before 2010. The use of forward-filled values for missing emissions introduces measurement error. Moreover, the investment set composition changes over time as more firms begin reporting, meaning that year-over-year comparisons of portfolio-level carbon metrics are partly driven by changes in the universe rather than genuine decarbonization.
+
+    \item \textbf{Scope of emissions.} Only direct emissions and indirect emissions from purchased energy are considered. Emissions arising from the broader value chain (upstream suppliers, downstream product use) are excluded. For some firms, these indirect emissions can vastly exceed direct ones, so our carbon metrics may understate the true carbon exposure of the portfolio.
+
+    \item \textbf{Static rebalancing frequency.} The portfolio is rebalanced annually, meaning that weights remain fixed (subject to drift) for 12 months regardless of market conditions. During periods of high volatility or large shifts in firm-level carbon data, the portfolio may deviate significantly from its intended risk and carbon targets before the next rebalancing date.
+
+    \item \textbf{Estimation risk.} Even with Ledoit-Wolf shrinkage, the covariance matrix remains an estimate subject to sampling variability. Portfolio weights derived from an estimated covariance matrix are themselves noisy, and out-of-sample performance can differ from in-sample expectations. The convergence issues observed with the sample covariance estimator (SLSQP) illustrate this sensitivity.
+
+    \item \textbf{Look-ahead bias in carbon data.} The project assumes that carbon data for year $Y$ is available at end of year $Y$ for the allocation decision. In practice, firms publish their emissions reports with a lag of 6 to 12 months, meaning that an investor would need to rely on older data, potentially reducing the effectiveness of the carbon constraints.
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This project implements and compares several carbon-aware portfolio strategies within a long-only equity framework over the 2014--2025 period. We evaluate three covariance estimators for the minimum-variance portfolio (sample covariance, single-factor model, Ledoit-Wolf shrinkage), illustrating the bias-variance trade-off in covariance estimation. We then construct carbon-constrained portfolios targeting both an active investor (minimum-variance with 50\% CF reduction) and a passive investor (tracking-error minimization with 50\% CF reduction and net-zero trajectory).
+
+The main result is that carbon constraints can be imposed at a low financial cost across all strategies considered. The Sharpe ratios of the constrained portfolios remain very close to those of their unconstrained counterparts, and the tracking-error portfolios maintain benchmark-like performance while achieving substantial carbon reductions. The net-zero strategy, despite its compounding constraint, does not significantly underperform the static 50\% reduction over our sample period.
+
+These favorable results should be interpreted with caution. The sample period coincides with a broad decarbonization trend in the investment universe, which mechanically eases the carbon constraints. Whether such low costs persist in the future will depend on the continued pace of firm-level emission reductions. As carbon budgets tighten further and the easiest substitutions are exhausted, investors may face harder trade-offs between decarbonization targets and portfolio performance.
+
+\section*{Use of Large Language Models (LLMs)}
+
+Generative AI tools were used during the development of this project. Claude (Anthropic) was mainly employed to assist with code debugging, documentation, and language refinement in the final report. GitHub Copilot was occasionally used to suggest code completions and improve syntax clarity. All data processing, modelling decisions, and analytical interpretations were fully designed and implemented by us, the authors. All AI-assisted outputs were carefully reviewed, edited, and validated to ensure technical accuracy, reproducibility, and academic integrity.
+
+\end{document}
