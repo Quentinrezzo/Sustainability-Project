@@ -600,44 +600,16 @@ Overall, these results indicate that halving the carbon footprint of the minimum
 \subsubsection{Optimisation Problem}
 
 The tracking-error strategy targets an investor who wants to track the value-weighted benchmark as closely as possible while reducing the carbon emissions related to their portfolio at contruction. The optimisation problem minimises the tracking error each year:
-\begin{equation}
-\min_{\{\alpha_Y\}} \quad TE_{p,Y} = \sqrt{(\alpha_Y - \alpha_Y^{(vw)})' \Sigma_Y (\alpha_Y - \alpha_Y^{(vw)})}
-\end{equation}
-\textit{s.t.}
-\begin{align}
-CF_Y^{(p)} &\leq 0.5 \times CF_Y^{(P^{(vw)})} \\
-\alpha_Y' e &= 1 \\
-\alpha_{i,Y} &\geq 0 \qquad \text{for all } i
-\end{align}
+\begin{alignat}{3}
+&\min_{\{\alpha_Y\}} \quad & &TE_{p,Y} = \sqrt{(\alpha_Y - \alpha_Y^{(vw)})'\Sigma_Y(\alpha_Y - \alpha_Y^{(vw)})} \nonumber \\[10pt]
+&\text{s.t.} \quad & &CF_Y^{(p)} \leq 0.5 \times CF_Y^{(P^{(vw)})} \\
+& & &\alpha_Y' e = 1 \\
+& & &\alpha_{i,Y} \geq 0 \qquad \text{for all } i
+\end{alignat}
 where $CF_Y^{(P^{(vw)})} = \frac{1}{Cap_Y} \sum_{i=1}^{N} E_{i,Y}$ denotes the carbon footprint of the value-weighted portfolio, with $Cap_Y = \sum_{i=1}^{N} Cap_{i,Y}$ the total market value of the investment set, and $\alpha_Y^{(vw)}$ is the vector of VW-FA benchmark weights.
 
 The optimisation is solved using CVXPY with the OSQP solver and the Ledoit-Wolf covariance matrix. The CF reference is computed over the full investment set using the VW-FA weights. As for the previous portfolios, monthly returns are computed using buy-and-hold weight drift.
 
-
-\subsection{Comparison of Carbon-Constrained Portfolios}
-
-\begin{table}[H]
-\centering
-\captionsetup{justification=centering}
-\caption{Annualised performance statistics --- VW-FA, VW-FA Drift and TE (Ledoit-Wolf).}
-\label{tab:stats_te_all}
-\begin{tabular}{lccc}
-\toprule
-& \textbf{VW-FA} & \textbf{VW-FA Drift} & \textbf{TE (LW)} \\[4pt]
-\midrule
-Annualised Average Return       & 11.66\% & 11.35\% & 11.28\% \\[4pt]
-Annualised Volatility           & 14.25\% & 14.36\% & 14.36\% \\[4pt]
-Annualised Cumulative Return    & 11.18\% & 10.82\% & 10.75\% \\[4pt]
-Sharpe Ratio                    & 0.70    & 0.67    & 0.66    \\[4pt]
-Minimum Monthly Return          & $-$13.08\% & $-$13.80\% & $-$13.78\% \\[4pt]
-Maximum Monthly Return          & 12.86\% & 13.38\% & 13.43\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:stats_te_all} allows a direct comparison of the CF-constrained Tracking-error portfolio with the benchmarks. The TE portfolio delivers a return of 11.28\% with similar variance and a Sharpe ratio of 0.66, very close to the VW-FA Drift benchmark (0.67). This shows that adding a 50\% carbon footprint reduction during portfolio construction alters its performance only marginally.
-
-NB: Add weights in top 10 CI firms !!!!!!!!!!!!!
 
 \subsection{Portfolio Allocation with a Net Zero Objective}
 \label{sec:netzero}
@@ -652,28 +624,28 @@ where $\theta = 10\%$ is the annual reduction rate, $Y_0 = 2013$ is the baseline
 
 The optimisation problem is identical to the tracking-error minimisation of Section~4.3, with only the CF constraint replaced by the net-zero trajectory defined above. The optimisation is solved using CVXPY with the OSQP solver and the Ledoit-Wolf covariance matrix. Again, monthly returns are computed using buy-and-hold weight drift method.
 
-\subsubsection{Comparison of Portfolios and Cost of Net Zero}
+\subsection{Comparison of Net Zero and Tracking Error Portfolios}
 
 \begin{table}[H]
 \centering
-\captionsetup{font=footnotesize, justification=centering}
-\caption{Annualised performance statistics --- Net Zero (Ledoit-Wolf).}
+\captionsetup{justification=centering}
+\caption{Annualised performance statistics --- VW-FA, VW-FA Drift, TE and NZ.}
 \label{tab:stats_nz_all}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lcccccc}
+\begin{tabular}{lcccc}
 \toprule
- & \textbf{VW-FA} & \textbf{VW-FA Drift} & \textbf{TE (LW)} & \textbf{NZ (LW)} \\
+& \textbf{VW-FA} & \textbf{VW-FA Drift} & \textbf{TE (LW)} & \textbf{NZ (LW)}\\[4pt]
 \midrule
-Annualised Average Return      & 11.66\% & 11.35\% & 11.28\% & 11.33\% \\
-Annualised Volatility          & 14.25\% & 14.36\% & 14.36\% & 14.36\% \\
-Annualised Cumulative Return   & 11.18\% & 10.82\% & 10.75\% & 10.81\% \\
-Sharpe Ratio                   & 0.70    & 0.67    & 0.66   & 0.67 \\
-Minimum Monthly Return         & $-13.08$\% & $-13.80$\% & $-13.78$\% & $-13.78$\% \\
-Maximum Monthly Return         & 12.86\% & 13.38\% & 13.43\% & 13.39\% \\
+Annualised Average Return       & 11.66\% & 11.35\% & 11.28\% & 11.33\% \\[4pt]
+Annualised Volatility           & 14.25\% & 14.36\% & 14.36\% & 14.36\% \\[4pt]
+Annualised Cumulative Return    & 11.18\% & 10.82\% & 10.75\% & 10.81\% \\[4pt]
+Sharpe Ratio                    & 0.70    & 0.67    & 0.66    & 0.67  \\[4pt]
+Minimum Monthly Return          & $-$13.08\% & $-$13.80\% & $-$13.78\% & $-13.78$\%  \\[4pt]
+Maximum Monthly Return          & 12.86\% & 13.38\% & 13.43\% & 13.39\%  \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
+
+Table~\ref{tab:stats_nz_all} allows a direct comparison of the CF-constrained tracking-error and net-zero portfolios with the benchmarks. The TE portfolio delivers a return of 11.28\% with similar variance and a Sharpe ratio of 0.66, very close to the VW-FA Drift portfolio (0.67). This shows that adding a 50\% carbon footprint reduction during portfolio construction alters its performance only marginally. The NZ portfolio performs remarkably close to the VW-FA with drift portfolio despite the carbon constraint. With a return of 11.33\% and a Sharpe ratio of 0.67, the NZ portfolio is nearly indistinguishable from the benchmark. It also performs slightly better than the TE portfolio which might seem suprising at first: the net-zero constraint imposes a compounding constraint that should be more binding than a static 50\% target over time. In our case though the net-zero portfolio is far less binding because the investment universe itself decarbonises over the sample period, as shown in Section~4.1. 
 
 \begin{figure}[H]
 \centering
@@ -682,9 +654,6 @@ Maximum Monthly Return         & 12.86\% & 13.38\% & 13.43\% & 13.39\% \\
 \caption{Cumulative returns --- VW-FA, VW-FA Drift, MV (Ledoit-Wolf), MV CF-Constrained (Ledoit-Wolf), TE (Ledoit-Wolf), NZ (Ledoit-Wolf), and risk-free rate (2014--2026).}
 \label{fig:cumulative_returns_nz}
 \end{figure}
-
-Table~\ref{tab:stats_nz_all} shows that the NZ portfolio performs remarkably close to the VW-FA with drift portfolio despite the carbon constraint. With a return of 11.33\% and a Sharpe ratio of 0.67, the NZ portfolio is nearly indistinguishable from the benchmark. It also performs slightly better thant the TE portfolio which might sound suprising at first: the net-zero constraint imposes a compounding constraint that should be more binding than a static 50\% target over time. In our case though the net-zero portfolio is far less binding because the investment universe itself decarbonises over the sample period, as shown in Section~4.1. 
-
 Figure~\ref{fig:cumulative_returns_nz}
 NB: Analyse this !!!!!!! no AI, simply say what happens. say that TE, NZ and VWFAdrift are close. VWFA is not a good benchmark as it is rebalanced monthly. 
 
@@ -717,6 +686,8 @@ The comparison between the TE and NZ portfolios is instructive because they shar
 \label{sec:discussion}
 
 \subsection{Financial Performance vs.\ Carbon Reduction}
+
+NB: Add some links with academic literature from the course !!!!!!!
 
 The results across all portfolio strategies point to a consistent finding: strong carbon reduction can be achieved at a low financial cost. The MV-CF portfolio halves its carbon footprint at construction relative to the unconstrained MV portfolio while preserving an identical Sharpe ratio of 0.48. The TE portfolio achieves the same 50\% reduction with a Sharpe ratio of 0.66, close to the VW-FA Drift benchmark (0.67). Even the more ambitious NZ trajectory delivers a Sharpe ratio of 0.67 despite requiring the portfolio's carbon footprint to fall below 28.2\% of the 2013 baseline by 2024.
 
